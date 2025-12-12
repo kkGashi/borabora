@@ -4,8 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Sistema de Gerenciamento de Horários - Professores</title>
- <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
   <div class="container">
     <header>
@@ -14,12 +15,14 @@
         <select id="filterProfessor">
           <option value="">Filtrar por professor (todos)</option>
         </select>
+
         <select id="filterTipo">
           <option value="">Filtrar por tipo (todos)</option>
           <option value="Aula">Aula</option>
           <option value="Reunião">Reunião</option>
           <option value="Outro">Outro</option>
         </select>
+
         <button id="btnClearFilters" class="ghost">Limpar</button>
       </div>
     </header>
@@ -74,13 +77,14 @@
         </div>
 
         <div id="lista" class="list" aria-live="polite"></div>
-        <p id="empty" class="meta" style="margin-top:10px">Nenhum compromisso. Adicione um usando o formulário acima.</p>
+        <p id="empty" class="meta" style="margin-top:10px">
+          Nenhum compromisso. Adicione um usando o formulário acima.
+        </p>
       </div>
     </section>
   </div>
 
   <script>
-    // Modelo simples de evento
     const STORAGE_KEY = 'sistema_professores_eventos_v1'
     let eventos = []
     let editIndex = -1
@@ -88,7 +92,6 @@
     const $ = id => document.getElementById(id)
     const lista = $('lista')
     const empty = $('empty')
-    const form = $('formEvento')  
 
     function carregar(){
       try{
@@ -144,27 +147,34 @@
       lista.innerHTML = ''
       const filtroProf = $('filterProfessor').value
       const filtroTipo = $('filterTipo').value
+
       const filtrados = eventos
         .filter(e => !filtroProf || e.professor === filtroProf)
         .filter(e => !filtroTipo || e.tipo === filtroTipo)
         .sort((a,b)=> new Date(a.datetime) - new Date(b.datetime))
 
-      if(filtrados.length===0){ empty.style.display='block' } else { empty.style.display='none' }
+      empty.style.display = filtrados.length === 0 ? 'block' : 'none'
 
       filtrados.forEach((ev, idx) => {
         const el = document.createElement('div')
         el.className = 'event'
+
         const date = new Date(ev.datetime)
         const human = date.toLocaleString()
+
         el.innerHTML = `
           <div>
-            <div style="font-weight:600">${ev.professor} <span class="meta">— ${ev.tipo}</span></div>
+            <div style="font-weight:600">${ev.professor} 
+              <span class="meta">— ${ev.tipo}</span>
+            </div>
+
             <div class="meta">${human} ${ev.duracao ? '• '+ev.duracao+' min':''}</div>
             <div class="meta">${ev.descricao || ''}</div>
           </div>
+
           <div class="controls">
-            <button class="ghost" data-idx="${idx}" onclick="editar(${idx})">Editar</button>
-            <button class="ghost" data-id="${ev.id}" onclick="remover(${ev.id})">Remover</button>
+            <button class="ghost" onclick="editar(${idx})">Editar</button>
+            <button class="ghost" onclick="remover(${ev.id})">Remover</button>
           </div>
         `
         lista.appendChild(el)
@@ -172,16 +182,18 @@
     }
 
     function editar(idx){
-      // Encontrar índice real no array original pelo id
       const ev = eventos[idx]
       if(!ev) return
+
       $('professor').value = ev.professor
       $('tipo').value = ev.tipo
       $('datetime').value = ev.datetime
       $('duracao').value = ev.duracao || ''
       $('descricao').value = ev.descricao || ''
+
       editIndex = idx
       $('btnSalvar').textContent = 'Salvar alterações'
+
       window.scrollTo({top:0,behavior:'smooth'})
     }
 
@@ -193,57 +205,74 @@
       popularFiltros()
     }
 
-    // Filtros simples
     function popularFiltros(){
       const selectProf = $('filterProfessor')
       const unique = Array.from(new Set(eventos.map(e=>e.professor))).sort()
-      // limpar mantendo o primeiro option
+
       selectProf.options.length = 1
       unique.forEach(p=>{
         const opt = document.createElement('option')
-        opt.value = p; opt.text = p
+        opt.value = p
+        opt.text = p
         selectProf.appendChild(opt)
       })
     }
 
-    // Export / Import
     $('btnExport').addEventListener('click', ()=>{
       const blob = new Blob([JSON.stringify(eventos, null, 2)],{type:'application/json'})
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
-      a.href = url; a.download = 'eventos_professores.json'
-      a.click(); URL.revokeObjectURL(url)
+      a.href = url
+      a.download = 'eventos_professores.json'
+      a.click()
+      URL.revokeObjectURL(url)
     })
 
     $('btnImport').addEventListener('click', ()=>$('fileImport').click())
-    $('fileImport').addEventListener('change', (ev)=>{
+    $('fileImport').addEventListener('change', ev=>{
       const f = ev.target.files[0]
       if(!f) return
+
       const reader = new FileReader()
-      reader.onload = (e)=>{
+      reader.onload = e=>{
         try{
           const data = JSON.parse(e.target.result)
           if(Array.isArray(data)){
-            // opcional: valida campos mínimos
-            eventos = data.map(d=>({ id: d.id || Date.now()+Math.random(), professor:d.professor||'?', tipo:d.tipo||'Aula', datetime:d.datetime||'', duracao:d.duracao||'', descricao:d.descricao||'' }))
-            salvarStorage(); atualizarUI(); popularFiltros()
+            eventos = data.map(d=>({
+              id: d.id || Date.now()+Math.random(),
+              professor:d.professor||'?',
+              tipo:d.tipo||'Aula',
+              datetime:d.datetime||'',
+              duracao:d.duracao||'',
+              descricao:d.descricao||''
+            }))
+            salvarStorage()
+            atualizarUI()
+            popularFiltros()
             alert('Importação concluída')
           } else alert('Arquivo inválido')
-        }catch(err){alert('Erro ao ler arquivo: '+err.message)}
+        }catch(err){
+          alert('Erro ao ler arquivo: '+err.message)
+        }
       }
+
       reader.readAsText(f)
       ev.target.value = ''
     })
 
-    // handlers
     $('btnSalvar').addEventListener('click', adicionarOuAtualizar)
     $('btnCancelar').addEventListener('click', limparFormulario)
     $('filterProfessor').addEventListener('change', atualizarUI)
     $('filterTipo').addEventListener('change', atualizarUI)
-    $('btnClearFilters').addEventListener('click', ()=>{ $('filterProfessor').value=''; $('filterTipo').value=''; atualizarUI() })
 
-    // inicializa
+    $('btnClearFilters').addEventListener('click', ()=>{
+      $('filterProfessor').value=''
+      $('filterTipo').value=''
+      atualizarUI()
+    })
+
     carregar()
   </script>
+
 </body>
 </html>
